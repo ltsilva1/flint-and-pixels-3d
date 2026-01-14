@@ -2,17 +2,9 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
-
-const int CANVAS_WIDTH = 600;
-const int CANVAS_HEIGHT = 600;
-
-struct Vec3 {
-    float x, y, z;
-};
-
-struct Vec2 {
-    float x, y;
-};
+#include "config.h"
+#include "renderer.h"
+#include "math3d.h"
 
 const float lado = 0.5f;
 const std::vector<Vec3> vertices = {
@@ -36,68 +28,6 @@ const std::vector<std::vector<int>> faces = {
     {2, 6},
     {3, 7}
 };
-
-Vec2 cartesian(const Vec2& p) {
-    const float nx  = (p.x + 1) / 2;
-    const float ny = (p.y + 1) / 2;
-
-    return {nx * CANVAS_WIDTH, ny * CANVAS_HEIGHT};
-}
-
-Vec2 project(const Vec3& p) {
-    if(p.z == 0) {
-        return {0, 0};
-    }
-
-    return {p.x / p.z, p.y / p.z};
-}
-
-Vec3 rotateY(const Vec3& p, float angle) {
-    return {
-        p.x * std::cos(angle) - p.z * std::sin(angle),
-        p.y,
-        p.x * std::sin(angle) + p.z * std::cos(angle)
-    };
-}
-
-void setPixel(Uint32* pixels, int x, int y, Uint32 color) {
-    if (x >= 0 && x < CANVAS_WIDTH && y >= 0 && y < CANVAS_HEIGHT) { // kinda slow?
-        pixels[y * CANVAS_WIDTH + x] = color;
-    }
-}
-
-void drawPoint(Uint32* pixels, int x, int y, Uint32 color, int size = 2) {
-    for (int dy = -size; dy <= size; dy++) {
-        for (int dx = -size; dx <= size; dx++) {
-            setPixel(pixels, x + dx, y + dy, color);
-        }
-    }
-}
-
-// Bresenham algorithm
-void drawLine(Uint32* pixels, int x0, int y0, int x1, int y1, Uint32 color) {
-    int dx = abs(x1 - x0);
-    int dy = abs(y1 - y0);
-    int sx = x0 < x1 ? 1 : -1;
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx - dy;
-
-    while (true) {
-        setPixel(pixels, x0, y0, color);
-
-        if (x0 == x1 && y0 == y1) break;
-
-        int e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            x0 += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            y0 += sy;
-        }
-    }
-}
 
 int main () {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -137,15 +67,19 @@ int main () {
     }
 
     bool running = true;
+    bool draw_verts = true;
     SDL_Event event;
     float angle = 0.0f;
     float z_offset = 3.0f;
+    float x_offset = 0.0f;
     Uint64 lastTime = SDL_GetTicks();
 
     // colors in RGBA format
     const Uint32 COLOR_BG = 0x000000FF;      // black
     const Uint32 COLOR_LINE = 0xFF0000FF;    // red
     const Uint32 COLOR_POINT = 0xFFFF00FF;   // yellow
+
+    const bool *key_states = SDL_GetKeyboardState(nullptr);
 
     while (running) {
         while (SDL_PollEvent(&event)) {
@@ -172,8 +106,9 @@ int main () {
         for (const auto& v : vertices) {
             Vec3 rotated = rotateY(v, angle);
             rotated.z += z_offset;
+            rotated.x += x_offset;
             Vec2 proj = project(rotated);
-            projectedPoints.push_back(cartesian(proj));
+            projectedPoints.push_back(cartesian(proj, CANVAS_WIDTH, CANVAS_HEIGHT));
         }
 
         // draw faces
@@ -190,6 +125,21 @@ int main () {
         // draw vertices
         for(const auto& p : projectedPoints) {
             drawPoint(pixels, static_cast<int>(p.x), static_cast<int>(p.y), COLOR_POINT);
+        }
+
+
+        // temp keyboard controls
+        if (key_states[SDL_SCANCODE_W] || key_states[SDL_SCANCODE_UP]) {
+            z_offset -= 0.1f;
+        }
+        if (key_states[SDL_SCANCODE_A] || key_states[SDL_SCANCODE_LEFT]) {
+            x_offset += 0.1f;
+        }
+        if (key_states[SDL_SCANCODE_D] || key_states[SDL_SCANCODE_RIGHT]) {
+            x_offset -= 0.1f;
+        }
+        if (key_states[SDL_SCANCODE_S] || key_states[SDL_SCANCODE_DOWN]) {
+            z_offset += 0.1f;
         }
 
         SDL_UnlockTexture(texture);
