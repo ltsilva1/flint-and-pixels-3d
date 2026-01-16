@@ -1,33 +1,10 @@
 #include <SDL3/SDL.h>
 #include <iostream>
 #include <cmath>
-#include <vector>
 #include "config.h"
 #include "renderer.h"
 #include "math3d.h"
-
-const float lado = 0.5f;
-const std::vector<Vec3> vertices = {
-    {lado, lado, lado},
-    {-lado, lado, lado},
-    {-lado, -lado, lado},
-    {lado, -lado, lado},
-
-    {lado, lado, -lado},
-    {-lado, lado, -lado},
-    {-lado, -lado, -lado},
-    {lado, -lado, -lado},
-};
-
-// temp
-const std::vector<std::vector<int>> faces = {
-    {0, 1, 2, 3}, // front
-    {4, 5, 6, 7}, // back
-    {0, 4},
-    {1, 5},
-    {2, 6},
-    {3, 7}
-};
+#include "mesh.h"
 
 int main () {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -66,18 +43,16 @@ int main () {
         return 1;
     }
 
+    Mesh cube = loadOBJ("starfox.obj");
+
     bool running = true;
     bool draw_verts = true;
     SDL_Event event;
     float angle = 0.0f;
-    float z_offset = 3.0f;
+    float z_offset = 5.5f;
     float x_offset = 0.0f;
+    float y_offset = -1.0f;
     Uint64 lastTime = SDL_GetTicks();
-
-    // colors in RGBA format
-    const Uint32 COLOR_BG = 0x000000FF;      // black
-    const Uint32 COLOR_LINE = 0xFF0000FF;    // red
-    const Uint32 COLOR_POINT = 0xFFFF00FF;   // yellow
 
     const bool *key_states = SDL_GetKeyboardState(nullptr);
 
@@ -92,7 +67,7 @@ int main () {
         float deltaTime = (currentTime - lastTime) / 1000.0f; // delta in seconds
         lastTime = currentTime;
 
-        angle += 2.0f * deltaTime;
+        angle += 1.5f * deltaTime;
 
         Uint32* pixels; // pixel buffer, kinda like a VRAM
         int pitch;
@@ -103,23 +78,27 @@ int main () {
 
         // vertices processing
         std::vector<Vec2> projectedPoints;
-        for (const auto& v : vertices) {
+        for (const auto& v : cube.vertices) {
             Vec3 rotated = rotateY(v, angle);
             rotated.z += z_offset;
             rotated.x += x_offset;
+            rotated.y += y_offset;
             Vec2 proj = project(rotated);
             projectedPoints.push_back(cartesian(proj, CANVAS_WIDTH, CANVAS_HEIGHT));
         }
 
         // draw faces
-        for(const auto& face : faces) {
-            for(size_t i = 0; i < face.size(); ++i) {
-                Vec2 p1 = projectedPoints[face[i]];
-                Vec2 p2 = projectedPoints[face[(i + 1) % face.size()]];
+        for(const auto& face : cube.faces) {
+            Vec2 p0 = projectedPoints[face.vIndices[0]];
+            Vec2 p1 = projectedPoints[face.vIndices[1]];
+            Vec2 p2 = projectedPoints[face.vIndices[2]];
 
-                drawLine(pixels, static_cast<int>(p1.x), static_cast<int>(p1.y),
-                    static_cast<int>(p2.x), static_cast<int>(p2.y), COLOR_LINE);
-            }
+            drawLine(pixels, static_cast<int>(p0.x), static_cast<int>(p0.y),
+                static_cast<int>(p1.x), static_cast<int>(p1.y), COLOR_LINE);
+            drawLine(pixels, static_cast<int>(p1.x), static_cast<int>(p1.y),
+                static_cast<int>(p2.x), static_cast<int>(p2.y), COLOR_LINE);
+            drawLine(pixels, static_cast<int>(p2.x), static_cast<int>(p2.y),
+                static_cast<int>(p0.x), static_cast<int>(p0.y), COLOR_LINE);
         }
 
         // draw vertices

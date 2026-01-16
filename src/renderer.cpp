@@ -2,6 +2,8 @@
 #include <cmath>
 #include "config.h"
 
+// USE OOP HERE
+
 void setPixel(Uint32* pixels, int x, int y, Uint32 color) {
     if (x >= 0 && x < CANVAS_WIDTH && y >= 0 && y < CANVAS_HEIGHT) { // kinda slow?
         pixels[y * CANVAS_WIDTH + x] = color;

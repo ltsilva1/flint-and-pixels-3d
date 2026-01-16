@@ -12,6 +12,7 @@ set(SOURCES
     src/main.cpp
     src/math3d.cpp
     src/renderer.cpp
+    src/mesh.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
