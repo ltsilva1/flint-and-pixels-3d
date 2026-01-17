@@ -3,7 +3,7 @@
 
 Vec2 cartesian(const Vec2& p, int canvasWidth, int canvasHeight) {
     const float nx  = (p.x + 1) / 2;
-    const float ny = (p.y + 1) / 2;
+    const float ny = 1.0f - (p.y + 1) / 2; // reverse y-axis because conventions and all
 
     return {nx * canvasWidth, ny * canvasHeight};
 }

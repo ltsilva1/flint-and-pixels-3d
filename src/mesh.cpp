@@ -31,42 +31,47 @@ Mesh loadOBJ(const std::string& filename) {
             ss >> vn.x >> vn.y >> vn.z;
             mesh.normals.push_back(vn);
         } else if (prefix == "f") {
-            Face f;
+            std::vector<int> vIdx, tIdx, nIdx;
 
-            // security initialization
-            for(int k=0; k<3; k++) {
-                f.vIndices[k] = -1;
-                f.tIndices[k] = -1;
-                f.nIndices[k] = -1;
-            }
-
-            for (int i = 0; i < 3; ++i) {
-                std::string vertexStr;
-                ss >> vertexStr;
-
+            // read all vertices of the face
+            std::string vertexStr;
+            while (ss >> vertexStr) {
                 std::istringstream vss(vertexStr);
                 std::string segment;
 
-                if (std::getline(vss, segment, '/')) {
-                    if (!segment.empty()) {
-                        f.vIndices[i] = std::stoi(segment) - 1; // OBJ index correction
-                    }
+                int v = -1, t = -1, n = -1;
+                if (std::getline(vss, segment, '/') && !segment.empty()) {
+                    v = std::stoi(segment) - 1;
+                }
+                if (std::getline(vss, segment, '/') && !segment.empty()) {
+                    t = std::stoi(segment) - 1;
+                }
+                if (std::getline(vss, segment, '/') && !segment.empty()) {
+                    n = std::stoi(segment) - 1;
                 }
 
-                if (std::getline(vss, segment, '/')) {
-                    if (!segment.empty()) {
-                        f.tIndices[i] = std::stoi(segment) - 1;
-                    }
-                }
-
-                if (std::getline(vss, segment, '/')) {
-                    if (!segment.empty()) {
-                        f.nIndices[i] = std::stoi(segment) - 1;
-                    }
-                }
+                vIdx.push_back(v);
+                tIdx.push_back(t);
+                nIdx.push_back(n);
             }
 
-            mesh.faces.push_back(f);
+            // triangulation!!
+            for (size_t i = 1; i + 1 < vIdx.size(); ++i) {
+                Face f;
+                f.vIndices[0] = vIdx[0];
+                f.vIndices[1] = vIdx[i];
+                f.vIndices[2] = vIdx[i+1];
+
+                f.tIndices[0] = tIdx[0];
+                f.tIndices[1] = tIdx[i];
+                f.tIndices[2] = tIdx[i+1];
+
+                f.nIndices[0] = nIdx[0];
+                f.nIndices[1] = nIdx[i];
+                f.nIndices[2] = nIdx[i+1];
+
+                mesh.faces.push_back(f);
+            }
         }
     }
     return mesh;

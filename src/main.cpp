@@ -1,4 +1,6 @@
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_scancode.h>
+#include <asm-generic/errno.h>
 #include <iostream>
 #include <cmath>
 #include "config.h"
@@ -11,7 +13,7 @@ int main () {
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("3D Rendering (in CPU!)", CANVAS_WIDTH, CANVAS_HEIGHT, 0);
+    SDL_Window* window = SDL_CreateWindow("3D Rendering in CPU", CANVAS_WIDTH, CANVAS_HEIGHT, 0);
     if (window == nullptr) {
         std::cerr << "SDL_CreateWindow Error: " << SDL_GetError() << std::endl;
         SDL_Quit();
@@ -43,13 +45,13 @@ int main () {
         return 1;
     }
 
-    Mesh cube = loadOBJ("starfox.obj");
+    Mesh cube = loadOBJ("sonic.obj"); // test file ;)
 
     bool running = true;
     bool draw_verts = true;
     SDL_Event event;
     float angle = 0.0f;
-    float z_offset = 5.5f;
+    float z_offset = 15.0f;
     float x_offset = 0.0f;
     float y_offset = -1.0f;
     Uint64 lastTime = SDL_GetTicks();
@@ -60,6 +62,30 @@ int main () {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT) {
                 running = false;
+            } else if (event.type == SDL_EVENT_KEY_DOWN) {
+                switch (event.key.scancode) { // temp input
+                    case SDL_SCANCODE_W:
+                        z_offset -= 1.0f;
+                        break;
+                    case SDL_SCANCODE_S:
+                        z_offset += 1.0f;
+                        break;
+                    case SDL_SCANCODE_A:
+                        x_offset += 1.0f;
+                        break;
+                    case SDL_SCANCODE_D:
+                        x_offset -= 1.0f;
+                        break;
+                    case SDL_SCANCODE_Q:
+                        y_offset -= 1.0f;
+                        break;
+                    case SDL_SCANCODE_E:
+                        y_offset += 1.0f;
+                        break;
+                    case SDL_SCANCODE_V:
+                        draw_verts = !draw_verts;
+                        break;
+                }
             }
         }
 
@@ -101,25 +127,12 @@ int main () {
                 static_cast<int>(p0.x), static_cast<int>(p0.y), COLOR_LINE);
         }
 
+
         // draw vertices
-        for(const auto& p : projectedPoints) {
-            drawPoint(pixels, static_cast<int>(p.x), static_cast<int>(p.y), COLOR_POINT);
-        }
-
-
-        // temp keyboard controls
-        if (key_states[SDL_SCANCODE_W] || key_states[SDL_SCANCODE_UP]) {
-            z_offset -= 0.1f;
-        }
-        if (key_states[SDL_SCANCODE_A] || key_states[SDL_SCANCODE_LEFT]) {
-            x_offset += 0.1f;
-        }
-        if (key_states[SDL_SCANCODE_D] || key_states[SDL_SCANCODE_RIGHT]) {
-            x_offset -= 0.1f;
-        }
-        if (key_states[SDL_SCANCODE_S] || key_states[SDL_SCANCODE_DOWN]) {
-            z_offset += 0.1f;
-        }
+        if(draw_verts)
+            for(const auto& p : projectedPoints) {
+                drawPoint(pixels, static_cast<int>(p.x), static_cast<int>(p.y), COLOR_POINT);
+            }
 
         SDL_UnlockTexture(texture);
 
