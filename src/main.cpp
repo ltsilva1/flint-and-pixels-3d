@@ -8,7 +8,12 @@
 #include "math3d.h"
 #include "mesh.h"
 
-int main () {
+int main(int argc, char* argv[]) {
+    if(argc < 2){
+        std::cerr << "Usage: " << argv[0] << " <mesh_file>" << std::endl;
+        return 1;
+    }
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         return 1;
     }
@@ -45,9 +50,11 @@ int main () {
         return 1;
     }
 
-    Mesh cube = loadOBJ("sonic.obj"); // test file ;)
+    Mesh cube = loadOBJ(argv[1]);
+    //Mesh cube = createExampleCube();
 
     bool running = true;
+    bool rotate = true;
     bool draw_verts = true;
     SDL_Event event;
     float angle = 0.0f;
@@ -77,13 +84,16 @@ int main () {
                         x_offset -= 1.0f;
                         break;
                     case SDL_SCANCODE_Q:
-                        y_offset -= 1.0f;
+                        y_offset += 1.0f;
                         break;
                     case SDL_SCANCODE_E:
-                        y_offset += 1.0f;
+                        y_offset -= 1.0f;
                         break;
                     case SDL_SCANCODE_V:
                         draw_verts = !draw_verts;
+                        break;
+                    case SDL_SCANCODE_R:
+                        rotate = !rotate;
                         break;
                 }
             }
@@ -93,7 +103,9 @@ int main () {
         float deltaTime = (currentTime - lastTime) / 1000.0f; // delta in seconds
         lastTime = currentTime;
 
-        angle += 1.5f * deltaTime;
+        if (rotate) {
+            angle += 1.5f * deltaTime;
+        }
 
         Uint32* pixels; // pixel buffer, kinda like a VRAM
         int pitch;
@@ -114,17 +126,42 @@ int main () {
         }
 
         // draw faces
-        for(const auto& face : cube.faces) {
-            Vec2 p0 = projectedPoints[face.vIndices[0]];
-            Vec2 p1 = projectedPoints[face.vIndices[1]];
-            Vec2 p2 = projectedPoints[face.vIndices[2]];
+        for (const auto& face : cube.faces) {
+            Vec3 v0 = cube.vertices[face.vIndices[0]];
+            Vec3 v1 = cube.vertices[face.vIndices[1]];
+            Vec3 v2 = cube.vertices[face.vIndices[2]];
 
-            drawLine(pixels, static_cast<int>(p0.x), static_cast<int>(p0.y),
-                static_cast<int>(p1.x), static_cast<int>(p1.y), COLOR_LINE);
-            drawLine(pixels, static_cast<int>(p1.x), static_cast<int>(p1.y),
-                static_cast<int>(p2.x), static_cast<int>(p2.y), COLOR_LINE);
-            drawLine(pixels, static_cast<int>(p2.x), static_cast<int>(p2.y),
-                static_cast<int>(p0.x), static_cast<int>(p0.y), COLOR_LINE);
+            // TODO: clean up this mess
+            // transform for view space stuff
+            Vec3 t0 = rotateY(v0, angle);
+            t0.z += z_offset;
+            t0.x += x_offset;
+            t0.y += y_offset;
+            Vec3 t1 = rotateY(v1, angle);
+            t1.z += z_offset;
+            t1.x += x_offset;
+            t1.y += y_offset;
+            Vec3 t2 = rotateY(v2, angle);
+            t2.z += z_offset;
+            t2.x += x_offset;
+            t2.y += y_offset;
+
+            // 3D CLIPPING!!
+            Triangle triView = { t0, t1, t2 };
+            std::vector<Triangle> clipped = clipTriangleAgainstNear(triView);
+
+            // project and draw triangles
+            for (const auto& tri : clipped) {
+                Vec2 p0 = project(tri.v[0]);
+                Vec2 p1 = project(tri.v[1]);
+                Vec2 p2 = project(tri.v[2]);
+
+                p0 = cartesian(p0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                p1 = cartesian(p1, CANVAS_WIDTH, CANVAS_HEIGHT);
+                p2 = cartesian(p2, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+                drawTriangle(pixels, p0, p1, p2, COLOR_LINE);
+            }
         }
 
 

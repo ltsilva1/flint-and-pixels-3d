@@ -5,11 +5,17 @@
 #include <string>
 #include <vector>
 #include "math3d.h"
+#include "config.h"
 
 
 Mesh loadOBJ(const std::string& filename) {
     Mesh mesh;
     std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open file: " + filename);
+    }
+
     std::string line;
 
     while (std::getline(file, line)) {
@@ -127,4 +133,73 @@ Mesh createExampleCube() {
     }
 
     return mesh;
+}
+
+std::vector<Triangle> clipTriangleAgainstNear(const Triangle& in_tri) {
+    std::vector<Triangle> out_tris;
+
+    // which vertex is inside or outside
+    Vec3 inside_pts[3];
+    Vec3 outside_pts[3];
+    int in_count = 0;
+    int out_count = 0;
+
+    for (int i = 0; i < 3; i++) {
+        if (in_tri.v[i].z >= Z_NEAR) {
+            inside_pts[in_count++] = in_tri.v[i];
+        } else {
+            outside_pts[out_count++] = in_tri.v[i];
+        }
+    }
+
+    // all out = reject the triangle
+    if (in_count == 0) {
+        return out_tris;
+    }
+    // all in = keep the triangle
+    else if (in_count == 3) {
+        out_tris.push_back(in_tri);
+    }
+    // 1 in 2 out = become one smaller triangle
+    else if (in_count == 1) {
+        Triangle t;
+        t.v[0] = inside_pts[0];
+        t.v[1] = intersectPlane(inside_pts[0], outside_pts[0], Z_NEAR);
+        t.v[2] = intersectPlane(inside_pts[0], outside_pts[1], Z_NEAR);
+        out_tris.push_back(t);
+    }
+    // 2 in 1 out = quad = 2 tris
+    else if (in_count == 2) {
+        // find outside index to ((preserve)) winding order
+        int idx_out;
+        if (in_tri.v[0].z < Z_NEAR) idx_out = 0;
+        else if (in_tri.v[1].z < Z_NEAR) idx_out = 1;
+        else idx_out = 2;
+
+        int idx_in1 = (idx_out + 1) % 3;
+        int idx_in2 = (idx_out + 2) % 3;
+
+        // get vertices
+        Vec3 v_out = in_tri.v[idx_out];
+        Vec3 v_in1 = in_tri.v[idx_in1];
+        Vec3 v_in2 = in_tri.v[idx_in2];
+
+        // calculate intersection points
+        Vec3 p1 = intersectPlane(v_in1, v_out, Z_NEAR);
+        Vec3 p2 = intersectPlane(v_in2, v_out, Z_NEAR);
+
+        Triangle t1;
+        t1.v[0] = v_in1;
+        t1.v[1] = p1;
+        t1.v[2] = v_in2;
+        out_tris.push_back(t1);
+
+        Triangle t2;
+        t2.v[0] = p1;
+        t2.v[1] = p2;
+        t2.v[2] = v_in2;
+        out_tris.push_back(t2);
+    }
+
+    return out_tris;
 }

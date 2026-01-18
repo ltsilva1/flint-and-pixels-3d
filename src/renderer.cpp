@@ -2,8 +2,6 @@
 #include <cmath>
 #include "config.h"
 
-// USE OOP HERE
-
 void setPixel(Uint32* pixels, int x, int y, Uint32 color) {
     if (x >= 0 && x < CANVAS_WIDTH && y >= 0 && y < CANVAS_HEIGHT) { // kinda slow?
         pixels[y * CANVAS_WIDTH + x] = color;
@@ -41,4 +39,13 @@ void drawLine(Uint32* pixels, int x0, int y0, int x1, int y1, Uint32 color) {
             y0 += sy;
         }
     }
+}
+
+void drawTriangle(Uint32* pixels, const Vec2& v0, const Vec2& v1, const Vec2& v2, Uint32 color) {
+    drawLine(pixels, static_cast<int>(v0.x), static_cast<int>(v0.y),
+        static_cast<int>(v1.x), static_cast<int>(v1.y), color);
+    drawLine(pixels, static_cast<int>(v1.x), static_cast<int>(v1.y),
+        static_cast<int>(v2.x), static_cast<int>(v2.y), color);
+    drawLine(pixels, static_cast<int>(v2.x), static_cast<int>(v2.y),
+        static_cast<int>(v0.x), static_cast<int>(v0.y), color);
 }

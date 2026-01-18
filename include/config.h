@@ -10,4 +10,6 @@ const Uint32 COLOR_BG = 0x000000FF;      // black
 const Uint32 COLOR_LINE = 0xFF0000FF;    // red
 const Uint32 COLOR_POINT = 0xFFFF00FF;   // yellow
 
+const float Z_NEAR = 0.5f; // Distance minimum from camera
+
 #endif // CONFIG_H

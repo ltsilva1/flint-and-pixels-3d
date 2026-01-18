@@ -22,5 +22,6 @@ struct Mesh {
 
 Mesh loadOBJ(const std::string& filename);
 Mesh createExampleCube();
+std::vector<Triangle> clipTriangleAgainstNear(const Triangle& in_tri);
 
 #endif // MESH_H

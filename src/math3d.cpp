@@ -23,3 +23,19 @@ Vec3 rotateY(const Vec3& p, float angle) {
         p.x * std::sin(angle) + p.z * std::cos(angle)
     };
 }
+
+// linear interpolation between two vectors
+Vec3 lerp(const Vec3& start, const Vec3& end, float t) {
+    return {
+        start.x + (end.x - start.x) * t,
+        start.y + (end.y - start.y) * t,
+        start.z + (end.z - start.z) * t
+    };
+}
+
+// where a line crosses the Z plane
+Vec3 intersectPlane(const Vec3& inside, const Vec3& outside, float z_plane) {
+    // t factor of interpolation based on Z distance
+    float t = (z_plane - inside.z) / (outside.z - inside.z);
+    return lerp(inside, outside, t);
+}
